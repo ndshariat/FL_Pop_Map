@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+svg {
+  font: 10px sans-serif;
+}
+
+.caption {
+  font-weight: bold;
+}
+
+.key path {
+  display: none;
+}
+
+.key line {
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.county-border {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .3;
+}
+
+/* So this here makes more sense once you look at render(). Basically when tracts have beeen selected to
+    be drawn, the tract lines draw underneath the county lines, so the opacity combines in those areas making it thicker. This becomes especially problematic in the portions that have more tract and county line overlaps, making the whole think just look dark, rather than strong red.*/
+.county-border-tract {
+  fill: none;
+  stroke: #000;
+  stroke-opacity: .05;
+}
+    
+/* Same styling framework as county, but tract borders are slightly thinner to differentiate between the counties and the tracts (visual hierarchy) */
+.tract-border {
+    fill: none;
+    stroke: #000;
+    stroke-opacity: .15;
+    }
+
+/* In this case the stroke is zero, basically drawing them still but not showing up anymore. */
+.tract-border-transparent {
+    fill: none;
+    stroke: #000;
+    stroke-opacity: 0;
+    }
+
+</style>
+<head>
+    <title> Florida Population Density </title>
+    <h1> Florida Population Density, 2014 </h1>
+</head>
+<body>
+<script src="//d3js.org/d3.v3.min.js"></script>
+<script src="//d3js.org/topojson.v1.min.js"></script>
+<script>
+    
+//used to keep track of which color range to draw   
+var colorBool = false;
+    
+//used to keep track of whether to draw the census tract boundaries or not (opaque vs. transparent)
+var tractBool = false;
+
+var width = 960,
+    height = 1100;
+
+var formatNumber = d3.format(",d");
+
+var path = d3.geo.path()
+    .projection(null);
+
+var color = d3.scale.threshold()
+    .domain([1, 10, 50, 100, 500, 1000, 2000, 5000])
+    .range(["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
+
+// A position encoding for the key only.
+var x = d3.scale.linear()
+    .domain([0, 5100])
+    .range([0, 480]);
+
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom")
+    .tickSize(13)
+    .tickValues(color.domain())
+    .tickFormat(function(d) { return d >= 100 ? formatNumber(d) : null; });
+
+var svg = d3.select("body").append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+var g = svg.append("g")
+    .attr("class", "key")
+    .attr("transform", "translate(440,40)");
+
+g.selectAll("rect")
+    .data(color.range().map(function(d, i) {
+      return {
+        x0: i ? x(color.domain()[i - 1]) : x.range()[0],
+        x1: i < color.domain().length ? x(color.domain()[i]) : x.range()[1],
+        z: d
+      };
+    }))
+  .enter().append("rect")
+    .attr("height", 8)
+    .attr("x", function(d) { return d.x0; })
+    .attr("width", function(d) { return d.x1 - d.x0; })
+    .style("fill", function(d) { return d.z; });
+
+g.call(xAxis).append("text")
+    .attr("class", "caption")
+    .attr("y", -6)
+    .text("Population per square mile");
+
+d3.json("cal.json", function(error, cal) {
+  if (error) throw error;
+
+  var tracts = topojson.feature(cal, cal.objects.tracts);
+
+  // Clip tracts to land.
+  svg.append("defs").append("clipPath")
+      .attr("id", "clip-land")
+    .append("path")
+      .datum(topojson.feature(cal, cal.objects.counties))
+      .attr("d", path);
+
+  // Group tracts by color for faster rendering.
+  svg.append("g")
+      .attr("class", "tract")
+      .attr("clip-path", "url(#clip-land)")
+    .selectAll("path")
+      .data(d3.nest()
+        .key(function(d) { return color(d.properties.population / d.properties.area * 2.58999e6); })
+        .entries(tracts.features.filter(function(d) { return d.properties.area; })))
+    .enter().append("path")
+      .style("fill", function(d) { return d.key; })
+      .attr("d", function(d) { return path({type: "FeatureCollection", features: d.values}); });
+
+  // Draw county borders.
+  svg.append("path")
+      .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a !== b; }))
+      .attr("class", "county-border")
+      .attr("d", path);
+});
+  // Draw census tract borders.
+  
+
+d3.select(self.frameElement).style("height", height + "px");
+  
+//when this function is called, the boolean colorBool is changed, and the color range is swapped, and then the map is re-rendered. 
+
+function colorChange() {
+    
+  //switch colorBool    
+  colorBool = !colorBool;
+
+  //added color, range of blues
+  if (colorBool == true){
+    color.range(["#eef8ff", "#d4ebff", "#bfe1fe", "#9ed2ff", "#86c7ff", "#6fbcff", "#49aaff", "#1f97ff", "#0088ff"]); 
+    render();
+  }
+  //original color that mike bostock made
+  else{
+    color.range(["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
+    render();
+  }  
+}
+    
+function tractToggle() {
+    tractBool = !tractBool;
+    render();
+}
+
+function render() {
+     svg.selectAll("rect")
+        .data(color.range().map(function(d, i) {
+          return {
+            //domain seeting not necessary since by the time render() is called, the domains had already been set. 
+            z: d
+          };
+        }))
+        .style("fill", function(d) { return d.z; });
+    
+    d3.json("cal.json", function(error, cal) {
+        if (error) throw error;
+
+    var tracts = topojson.feature(cal, cal.objects.tracts);
+      
+      if(tractBool == false){
+      // Clip tracts to land.
+      svg.append("defs").append("clipPath")
+          .attr("id", "clip-land")
+        .append("path")
+          .datum(topojson.feature(cal, cal.objects.counties))
+          .attr("d", path);
+
+      // Group tracts by color for faster rendering.
+      svg.append("g")
+          .attr("class", "tract")
+          .attr("clip-path", "url(#clip-land)")
+        .selectAll("path")
+          .data(d3.nest()
+            .key(function(d) { return color(d.properties.population / d.properties.area * 2.58999e6); })
+            .entries(tracts.features.filter(function(d) { return d.properties.area; })))
+        .enter().append("path")
+          .style("fill", function(d) { return d.key; })
+          .attr("class", "tract-border-transparent")
+          .attr("d", function(d) { return path({type: "FeatureCollection", features: d.values}); });
+            // Draw county borders.
+      
+        svg.append("path")
+          .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a != b; }))
+          .attr("class", "county-border")
+          .attr("d", path);
+      }
+      else{
+          svg.append("g")
+          .attr("class", "tract")
+          .attr("clip-path", "url(#clip-land)")
+        .selectAll("path")
+          .data(d3.nest()
+            .key(function(d) { return color(d.properties.population / d.properties.area * 2.58999e6); })
+            .entries(tracts.features.filter(function(d) { return d.properties.area; })))
+        .enter().append("path")
+          .style("fill", function(d) { return d.key; })
+          .attr("class", "tract-border")
+          .attr("d", function(d) { return path({type: "FeatureCollection", features: d.values}); });
+            // Draw county borders.
+      
+        svg.append("path")
+          .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a != b; }))
+          .attr("class", "county-border-tract")
+          .attr("d", path);
+      }
+      
+
+      
+    });
+}
+
+</script>
+
+<div id="color">
+    <input name="colorButton"
+           type="button"
+           value="color"
+           onclick="colorChange()" 
+    />
+</div>
+<div>
+    <input name="tractButton"
+           type="button"
+           value="tracts"
+           onclick="tractToggle()"
+    />        
+</div>
+    
+    <h2> Nima Shariat <br>
+     Instructor: Suresh Lodha <br>
+     CMPS 165: Data Programming for Visualization <br>
+     Fall 2016
+    </h2>
+</body>
