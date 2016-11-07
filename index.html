@@ -1,4 +1,11 @@
 <!DOCTYPE html>
+<!-- Nima Shariat
+    CMPS 165
+    Suresh Lodha
+    Assignment 6
+    flPopDensity.html
+-->
+
 <meta charset="utf-8">
 <style>
 
@@ -50,7 +57,7 @@ svg {
 </style>
 <head>
     <title> Florida Population Density </title>
-    <h1> Florida Population Density, 2014 </h1>
+    <h1> <b>Florida Population Density, 2014</b> </h1>
 </head>
 <body>
 <script src="//d3js.org/d3.v3.min.js"></script>
@@ -173,11 +180,14 @@ function tractToggle() {
     render();
 }
 
+    
+//does pretty much the same thing as the original rendering, except it also now checks the state of tractBool and then references the associated class for styling (either opaque or transparent)
 function render() {
      svg.selectAll("rect")
         .data(color.range().map(function(d, i) {
           return {
-            //domain seeting not necessary since by the time render() is called, the domains had already been set. 
+            x0: i ? x(color.domain()[i - 1]) : x.range()[0],
+            x1: i < color.domain().length ? x(color.domain()[i]) : x.range()[1], 
             z: d
           };
         }))
@@ -234,14 +244,12 @@ function render() {
           .attr("class", "county-border-tract")
           .attr("d", path);
       }
-      
-
-      
     });
 }
 
 </script>
-
+<!-- Here are the buttons that can be clicked to change the color of the map, and change whether the census tract borders are rendered --> 
+    
 <div id="color">
     <input name="colorButton"
            type="button"
