@@ -60,8 +60,22 @@ svg {
     <h1> <b>Florida Population Density, 2014</b> </h1>
 </head>
 <body>
-<script src="//d3js.org/d3.v3.min.js"></script>
-<script src="//d3js.org/topojson.v1.min.js"></script>
+<script src="https://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<div id="color">
+    <input name="colorButton"
+           type="button"
+           value="color"
+           onclick="colorChange()" 
+    />
+</div>
+<div>
+    <input name="tractButton"
+           type="button"
+           value="tracts"
+           onclick="tractToggle()"
+    />        
+</div>
 <script>
     
 //used to keep track of which color range to draw   
@@ -75,9 +89,11 @@ var width = 960,
 
 var formatNumber = d3.format(",d");
 
+    
 var path = d3.geo.path()
     .projection(null);
 
+    
 var color = d3.scale.threshold()
     .domain([1, 10, 50, 100, 500, 1000, 2000, 5000])
     .range(["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"]);
@@ -100,7 +116,7 @@ var svg = d3.select("body").append("svg")
 
 var g = svg.append("g")
     .attr("class", "key")
-    .attr("transform", "translate(440,40)");
+    .attr("transform", "translate(440,20)");
 
 g.selectAll("rect")
     .data(color.range().map(function(d, i) {
@@ -121,16 +137,16 @@ g.call(xAxis).append("text")
     .attr("y", -6)
     .text("Population per square mile");
 
-d3.json("cal.json", function(error, cal) {
+d3.json("fl.json", function(error, fl) {
   if (error) throw error;
 
-  var tracts = topojson.feature(cal, cal.objects.tracts);
+  var tracts = topojson.feature(fl, fl.objects.tracts);
 
   // Clip tracts to land.
   svg.append("defs").append("clipPath")
       .attr("id", "clip-land")
     .append("path")
-      .datum(topojson.feature(cal, cal.objects.counties))
+      .datum(topojson.feature(fl, fl.objects.counties))
       .attr("d", path);
 
   // Group tracts by color for faster rendering.
@@ -147,7 +163,7 @@ d3.json("cal.json", function(error, cal) {
 
   // Draw county borders.
   svg.append("path")
-      .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a !== b; }))
+      .datum(topojson.mesh(fl, fl.objects.counties, function(a, b) { return a !== b; }))
       .attr("class", "county-border")
       .attr("d", path);
 });
@@ -193,17 +209,17 @@ function render() {
         }))
         .style("fill", function(d) { return d.z; });
     
-    d3.json("cal.json", function(error, cal) {
+    d3.json("fl.json", function(error, fl) {
         if (error) throw error;
 
-    var tracts = topojson.feature(cal, cal.objects.tracts);
+    var tracts = topojson.feature(fl, fl.objects.tracts);
       
       if(tractBool == false){
       // Clip tracts to land.
       svg.append("defs").append("clipPath")
           .attr("id", "clip-land")
         .append("path")
-          .datum(topojson.feature(cal, cal.objects.counties))
+          .datum(topojson.feature(fl, fl.objects.counties))
           .attr("d", path);
 
       // Group tracts by color for faster rendering.
@@ -221,7 +237,7 @@ function render() {
             // Draw county borders.
       
         svg.append("path")
-          .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a != b; }))
+          .datum(topojson.mesh(fl, fl.objects.counties, function(a, b) { return a != b; }))
           .attr("class", "county-border")
           .attr("d", path);
       }
@@ -240,7 +256,7 @@ function render() {
             // Draw county borders.
       
         svg.append("path")
-          .datum(topojson.mesh(cal, cal.objects.counties, function(a, b) { return a != b; }))
+          .datum(topojson.mesh(fl, fl.objects.counties, function(a, b) { return a != b; }))
           .attr("class", "county-border-tract")
           .attr("d", path);
       }
@@ -250,20 +266,7 @@ function render() {
 </script>
 <!-- Here are the buttons that can be clicked to change the color of the map, and change whether the census tract borders are rendered --> 
     
-<div id="color">
-    <input name="colorButton"
-           type="button"
-           value="color"
-           onclick="colorChange()" 
-    />
-</div>
-<div>
-    <input name="tractButton"
-           type="button"
-           value="tracts"
-           onclick="tractToggle()"
-    />        
-</div>
+
     
     <h2> Nima Shariat <br>
      Instructor: Suresh Lodha <br>
