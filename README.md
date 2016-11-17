@@ -4,9 +4,6 @@ A population density map of Florida based on Census data, using d3.js for CMPS 1
 Files included:
 flPopDensity.html
 fl.json
-cal.json (explained in bonus points submission area)
 
-Currently displays the population density of California, due to problems with topojson. Once those problems are fixed,
-the program will be updated to utilize the correct fl.json. 
-Clicking on the tracts button on the bottom will add census tract boundaries and clicking on color shifts the color range
-from a warm one to a cool one. 
+Using d3.js and topojson, displays the population density of Florida, based on the most recent census data available (2014).
+You can toggle the tract boundaries and change the color using the buttons on the top.
